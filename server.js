@@ -27,24 +27,13 @@ async function getMarketCaps() {
 
 // ====== ดึง Odds จาก Polymarket ======
 async function getPolymarketOdds() {
-    // เรียก events API ของ Polymarket
-    const res = await axios.get("https://gamma-api.polymarket.com/events");
+    const MARKET_ID = "34859576";
 
-    // หา event ที่เป็น largest company end of february
-    const event = res.data.find(e =>
-        e.slug && e.slug.includes("largest-company-end-of-february")
-    );
-
-    if (!event || !event.markets) {
-        throw new Error("Event not found");
-    }
-
-    // market แรกใน event นี้คือตลาดที่เราต้องการ
-    const market = event.markets[0];
+    const res = await axios.get(`https://clob.polymarket.com/markets/${MARKET_ID}`);
 
     const odds = {};
-    market.outcomes.forEach(o => {
-        odds[o.name] = o.price * 100;
+    res.data.outcomes.forEach(o => {
+        odds[o.name] = parseFloat(o.price) * 100;
     });
 
     return odds;
