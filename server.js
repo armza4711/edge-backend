@@ -1,25 +1,36 @@
 const express = require('express');
 const axios = require('axios');
-const app = express();
+const cors = require('cors');
 
-const STOCKS = ["NVDA", "AAPL", "MSFT", "GOOGL", "AMZN"];
-const FMP_KEY = process.env.FMP_KEY;
+const app = express();
+app.use(cors());
+
+const ALPHA_KEY = process.env.ALPHA_KEY;
+
+// ====== ดึง Market Cap จาก Alpha Vantage ======
+async function getMarketCap(symbol) {
+    const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${ALPHA_KEY}`;
+    const res = await axios.get(url);
+    return parseInt(res.data.MarketCapitalization);
+}
 
 async function getMarketCaps() {
+    const symbols = ["NVDA","AAPL","MSFT","GOOGL","AMZN"];
     const caps = {};
-    for (let s of STOCKS) {
-        const res = await axios.get(
-          `https://financialmodelingprep.com/api/v3/quote/${s}?apikey=${FMP_KEY}`
-        );
-        caps[s] = res.data[0].marketCap;
+
+    for (let s of symbols) {
+        caps[s] = await getMarketCap(s);
     }
+
     return caps;
 }
 
+// ====== ดึง Odds จาก Polymarket ======
 async function getPolymarketOdds() {
     const res = await axios.get("https://gamma-api.polymarket.com/markets");
+
     const market = res.data.find(m =>
-        m.question.includes("Largest company end of")
+        m.question && m.question.includes("Largest company end of")
     );
 
     const odds = {};
@@ -30,6 +41,7 @@ async function getPolymarketOdds() {
     return odds;
 }
 
+// ====== Route หลัก ======
 app.get('/check', async (req, res) => {
     try {
         const caps = await getMarketCaps();
@@ -48,7 +60,7 @@ app.get('/check', async (req, res) => {
         res.json({
             leader: leader[0],
             gapPercent: gapPercent.toFixed(2),
-            polymarketOdds: odds[leader[0]].toFixed(2),
+            polymarketOdds: odds[leader[0]] ? odds[leader[0]].toFixed(2) : "N/A",
             decision
         });
     } catch (e) {
@@ -56,4 +68,4 @@ app.get('/check', async (req, res) => {
     }
 });
 
-app.listen(3000);
+app.listen(3000, () => console.log("Server running"));
