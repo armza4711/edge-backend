@@ -10,7 +10,14 @@ const ALPHA_KEY = process.env.ALPHA_KEY;
 async function getMarketCap(symbol) {
     const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${ALPHA_KEY}`;
     const res = await axios.get(url);
-    return parseInt(res.data.MarketCapitalization);
+
+    const cap = res.data.MarketCapitalization;
+
+    if (!cap || cap === "None") {
+        throw new Error(`No market cap for ${symbol}`);
+    }
+
+    return Number(cap);
 }
 
 app.get('/check', async (req, res) => {
