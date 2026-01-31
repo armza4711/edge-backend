@@ -5,21 +5,21 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
-const ALPHA_KEY = process.env.ALPHA_KEY;
-
+// ===== ดึง Market Cap จาก Yahoo Finance =====
 async function getMarketCap(symbol) {
-    const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${ALPHA_KEY}`;
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
     const res = await axios.get(url);
 
-    const cap = res.data.MarketCapitalization;
+    const result = res.data.quoteResponse.result[0];
 
-    if (!cap || cap === "None") {
+    if (!result || !result.marketCap) {
         throw new Error(`No market cap for ${symbol}`);
     }
 
-    return Number(cap);
+    return result.marketCap;
 }
 
+// ===== Route หลัก =====
 app.get('/check', async (req, res) => {
     try {
         const symbols = ["NVDA","AAPL","MSFT","GOOGL","AMZN"];
@@ -29,6 +29,7 @@ app.get('/check', async (req, res) => {
             caps[s] = await getMarketCap(s);
         }
 
+        // เรียงลำดับตาม market cap
         const sorted = Object.entries(caps).sort((a,b)=>b[1]-a[1]);
         const leader = sorted[0];
         const second = sorted[1];
@@ -39,9 +40,14 @@ app.get('/check', async (req, res) => {
 
         res.json({
             leader: leader[0],
+            leaderCap: leader[1],
+            second: second[0],
+            secondCap: second[1],
             gapPercent: gapPercent.toFixed(2),
             reality: locked ? "LOCKED IN REALITY" : "NOT LOCKED",
-            action: locked ? "Go check Polymarket odds" : "Wait"
+            action: locked
+                ? "Go check Polymarket odds (should be 92–96%)"
+                : "Wait — too early"
         });
 
     } catch (e) {
@@ -49,4 +55,4 @@ app.get('/check', async (req, res) => {
     }
 });
 
-app.listen(3000);
+app.listen(3000, () => console.log("Server running"));
