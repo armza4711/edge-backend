@@ -8,7 +8,13 @@ app.use(cors());
 // ===== ดึง Market Cap จาก Yahoo Finance =====
 async function getMarketCap(symbol) {
     const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
-    const res = await axios.get(url);
+
+    const res = await axios.get(url, {
+        headers: {
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json"
+        }
+    });
 
     const result = res.data.quoteResponse.result[0];
 
